@@ -28,6 +28,11 @@
         "internalType": "uint256",
         "name": "randomSeed_",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "numWinners",
+        "type": "uint256"
       }
     ],
     "name": "draw",
@@ -65,7 +70,13 @@
     "type": "function"
   },
   {
-    "inputs": [],
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "n",
+        "type": "uint256"
+      }
+    ],
     "name": "getWinner",
     "outputs": [
       {

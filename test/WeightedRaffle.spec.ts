@@ -47,23 +47,37 @@ describe('WeightedRaffle', () => {
 
             // Finalise
             const randomSeed = BigInt(`0x${randomBytes(32).toString('hex')}`)
-            await raffle.draw(randomSeed)
+            const numWinners = 10
+            await raffle.draw(randomSeed, numWinners)
 
             const totalWeight = entries.map((e) => e.weight).reduce((p, c) => p + c, 0)
-            const index = decrypt(0n, BigInt(totalWeight), randomSeed, 4n, f)
-            acc = 0
-            let expectedWinner!: string
-            for (const entry of entries) {
-                if (acc <= index && index < acc + entry.weight) {
-                    expectedWinner = entry.address
-                    break
-                }
-                acc += entry.weight
+            const expectedWinners = new Set<string>()
+            let i = 0
+            for (let n = 0; n < numWinners; n++) {
+                let expectedWinner!: string
+                do {
+                    // Determine shuffle
+                    const index = decrypt(BigInt(i++), BigInt(totalWeight), randomSeed, 4n, f)
+                    // Find winner entry
+                    let acc = 0
+                    for (const entry of entries) {
+                        if (acc <= index && index < acc + entry.weight) {
+                            expectedWinner = entry.address
+                            break
+                        }
+                        acc += entry.weight
+                    }
+                    expect(expectedWinner).to.not.eq(undefined)
+                } while (expectedWinners.has(expectedWinner))
+                expectedWinners.add(expectedWinner)
             }
+            expect(expectedWinners.size).to.eq(numWinners)
 
-            const winner = await raffle.getWinner()
-            expect(winner).to.eq(expectedWinner)
-            console.log(`Winner: ${winner} [${index}]`)
+            for (let n = 0; n < numWinners; n++) {
+                const winner = await raffle.getWinner(n)
+                expectedWinners.delete(winner)
+            }
+            expect(expectedWinners.size).to.eq(0)
         })
     }
 })
