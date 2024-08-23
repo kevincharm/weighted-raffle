@@ -57,7 +57,7 @@ describe('WeightedRaffle', () => {
                 let expectedWinner!: string
                 do {
                     // Determine shuffle
-                    const index = decrypt(BigInt(i++), BigInt(totalWeight), randomSeed, 4n, f)
+                    const index = decrypt(BigInt(i++), BigInt(totalWeight), randomSeed, 12n, f)
                     // Find winner entry
                     let acc = 0
                     for (const entry of entries) {

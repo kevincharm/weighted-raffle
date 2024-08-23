@@ -79,7 +79,7 @@ contract WeightedRaffle {
             n,
             lastEntry.end,
             randomSeed,
-            4
+            12
         );
         // binsearch to find the range that index is covered by
         uint256 l = 0;
