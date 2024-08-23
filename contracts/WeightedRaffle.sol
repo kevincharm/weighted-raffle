@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {FeistelShuffleOptimised} from "solshuffle/contracts/FeistelShuffleOptimised.sol";
 
 /// @title WeightedRaffle
 /// @notice Draft weighted raffle implementation
-contract WeightedRaffle {
+contract WeightedRaffle is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct Entry {
@@ -25,9 +26,24 @@ contract WeightedRaffle {
     /// @notice Drawn winners
     EnumerableSet.AddressSet internal winners;
 
+    constructor() Ownable(msg.sender) {}
+
+    /// @notice Helper for batch-adding entries
+    /// @param beneficiaries List of beneficiaries
+    /// @param weights List of weights
+    function addEntries(
+        address[] calldata beneficiaries,
+        uint256[] calldata weights
+    ) public onlyOwner {
+        require(beneficiaries.length == weights.length, "Lengths mismatch");
+        for (uint256 i; i < beneficiaries.length; ++i) {
+            addEntry(beneficiaries[i], weights[i]);
+        }
+    }
+
     /// @notice Add a raffle entry. This function enforces that consecutive
     ///     entries cover adjacent ranges.
-    function addEntry(address beneficiary, uint256 weight) public {
+    function addEntry(address beneficiary, uint256 weight) public onlyOwner {
         require(beneficiary != address(0), "Beneficiary must exist");
         require(weight > 0, "Weight must be nonzero");
 
@@ -48,7 +64,7 @@ contract WeightedRaffle {
     }
 
     /// @notice Placeholder for VRF callback
-    function draw(uint256 randomSeed_, uint256 numWinners) public {
+    function draw(uint256 randomSeed_, uint256 numWinners) public onlyOwner {
         require(randomSeed == 0, "Raffle already finalised");
         randomSeed = randomSeed_;
 

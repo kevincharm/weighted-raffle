@@ -32,9 +32,10 @@ describe('WeightedRaffle', () => {
             }))
 
             // Add entries on contract
-            for (const entry of entries) {
-                await raffle.addEntry(entry.address, entry.weight)
-            }
+            await raffle.addEntries(
+                entries.map((entry) => entry.address),
+                entries.map((entry) => entry.weight),
+            )
 
             // Check that entries are added correctly
             let acc = 0
