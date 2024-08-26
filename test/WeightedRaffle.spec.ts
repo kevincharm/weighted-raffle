@@ -1,5 +1,6 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import {
+    ERC1967Proxy__factory,
     WeightedRaffle,
     WeightedRaffle__factory,
     WeightedRaffleFactory,
@@ -23,7 +24,18 @@ describe('WeightedRaffle', () => {
     before(async () => {
         ;[deployer] = await ethers.getSigners()
         participants = Array.from({ length: 100 }, () => Wallet.createRandom())
-        factory = await new WeightedRaffleFactory__factory(deployer).deploy()
+        const raffleMasterCopy = await new WeightedRaffle__factory(deployer).deploy()
+        const factoryMasterCopy = await new WeightedRaffleFactory__factory(deployer).deploy()
+        const factoryProxy = await new ERC1967Proxy__factory(deployer).deploy(
+            await factoryMasterCopy.getAddress(),
+            await factoryMasterCopy.interface.encodeFunctionData('init', [
+                await raffleMasterCopy.getAddress(),
+            ]),
+        )
+        factory = await WeightedRaffleFactory__factory.connect(
+            await factoryProxy.getAddress(),
+            deployer,
+        ).waitForDeployment()
     })
 
     let raffle: WeightedRaffle
@@ -33,7 +45,10 @@ describe('WeightedRaffle', () => {
         const raffleDeployedEvent = deployTx!.logs
             .map((log) => factory.interface.parseLog(log)!)
             .find((log) => log.name === 'RaffleDeployed')!
-        raffle = WeightedRaffle__factory.connect(raffleDeployedEvent.args[0], deployer)
+        raffle = await WeightedRaffle__factory.connect(
+            raffleDeployedEvent.args[0],
+            deployer,
+        ).waitForDeployment()
     })
 
     for (let run = 0; run < 100; run++) {
