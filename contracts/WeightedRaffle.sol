@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.26;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {FeistelShuffleOptimised} from "solshuffle/contracts/FeistelShuffleOptimised.sol";
 
 /// @title WeightedRaffle
 /// @notice Draft weighted raffle implementation
-contract WeightedRaffle is Ownable {
+contract WeightedRaffle is Initializable, OwnableUpgradeable {
     using EnumerableSet for EnumerableSet.AddressSet;
 
     struct Entry {
@@ -26,7 +27,13 @@ contract WeightedRaffle is Ownable {
     /// @notice Drawn winners
     EnumerableSet.AddressSet internal winners;
 
-    constructor() Ownable(msg.sender) {}
+    constructor() {
+        _disableInitializers();
+    }
+
+    function init(address owner_) public initializer {
+        __Ownable_init(owner_);
+    }
 
     /// @notice Helper for batch-adding entries
     /// @param beneficiaries List of beneficiaries

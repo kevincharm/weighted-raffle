@@ -1,5 +1,10 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { WeightedRaffle, WeightedRaffle__factory } from '../typechain-types'
+import {
+    WeightedRaffle,
+    WeightedRaffle__factory,
+    WeightedRaffleFactory,
+    WeightedRaffleFactory__factory,
+} from '../typechain-types'
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { decrypt } from '@kevincharm/gfc-fpe'
@@ -14,14 +19,21 @@ interface Entry {
 describe('WeightedRaffle', () => {
     let deployer: SignerWithAddress
     let participants: HDNodeWallet[]
+    let factory: WeightedRaffleFactory
     before(async () => {
         ;[deployer] = await ethers.getSigners()
         participants = Array.from({ length: 100 }, () => Wallet.createRandom())
+        factory = await new WeightedRaffleFactory__factory(deployer).deploy()
     })
 
     let raffle: WeightedRaffle
     beforeEach(async () => {
-        raffle = await new WeightedRaffle__factory(deployer).deploy()
+        const deployTx = await factory.deployRaffle().then((tx) => tx.wait())
+        expect(deployTx).to.emit(factory, 'RaffleDeployed')
+        const raffleDeployedEvent = deployTx!.logs
+            .map((log) => factory.interface.parseLog(log)!)
+            .find((log) => log.name === 'RaffleDeployed')!
+        raffle = WeightedRaffle__factory.connect(raffleDeployedEvent.args[0], deployer)
     })
 
     for (let run = 0; run < 100; run++) {
