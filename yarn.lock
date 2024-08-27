@@ -581,10 +581,10 @@
     debug "^4.1.1"
     lodash.isequal "^4.5.0"
 
-"@nomicfoundation/hardhat-ignition-ethers@^0.15.0":
-  version "0.15.2"
-  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-ignition-ethers/-/hardhat-ignition-ethers-0.15.2.tgz#4287629e7cefafa0633a8db455629684768a3631"
-  integrity sha512-rXkEpzl4ZNGfrht6ZFO+37dQvL+byrJaX7pNeSFzdKKqhEe4oboRwDWaBohQO+pCn837Qh/86xwwOFoGEv2+hg==
+"@nomicfoundation/hardhat-ignition-ethers@^0.15.5":
+  version "0.15.5"
+  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-ignition-ethers/-/hardhat-ignition-ethers-0.15.5.tgz#98f945c110e26a120baf015b0d2322d5025273aa"
+  integrity sha512-W6s1QN9CFxzSVZS6w9Jcj3WLaK32z2FP5MxNU2OKY1Fn9ZzLr+miXbUbWYuRHl6dxrrl6sE8cv33Cybv19pmCg==
 
 "@nomicfoundation/hardhat-ignition@^0.15.0":
   version "0.15.2"

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Weighted raffle contract",
   "scripts": {
+    "deploy:holesky": "yarn hardhat --network holesky run scripts/deploy.ts",
     "build": "yarn hardhat compile",
     "test": "yarn hardhat --network hardhat test",
     "coverage": "yarn hardhat coverage",
@@ -16,7 +17,7 @@
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.6",
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
-    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.5",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.5",
