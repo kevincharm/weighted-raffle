@@ -13,8 +13,18 @@ const configWithNetwork: HardhatUserConfig = {
     },
     etherscan: {
         apiKey: {
-            xdai: process.env.ETHERSCAN_API_KEY as string,
+            holesky: process.env.ETHERSCAN_API_KEY as string,
         },
+        customChains: [
+            {
+                network: 'holesky',
+                chainId: 0x4268,
+                urls: {
+                    apiURL: 'https://api-holesky.etherscan.io/api',
+                    browserURL: 'https://holesky.etherscan.io',
+                },
+            },
+        ],
     },
 }
 
