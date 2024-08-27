@@ -13,7 +13,7 @@ async function main() {
     )
     const { weightedRaffleFactoryProxy } = await ignition.deploy(WeightedRaffleFactoryImpl, {
         parameters: {
-            LooteryFactory: {
+            WeightedRaffleFactory: {
                 factoryInitData,
             },
         },
