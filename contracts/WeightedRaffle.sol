@@ -41,16 +41,22 @@ contract WeightedRaffle is Initializable, OwnableUpgradeable {
     function addEntries(
         address[] calldata beneficiaries,
         uint256[] calldata weights
-    ) public onlyOwner {
+    ) external onlyOwner {
         require(beneficiaries.length == weights.length, "Lengths mismatch");
         for (uint256 i; i < beneficiaries.length; ++i) {
-            addEntry(beneficiaries[i], weights[i]);
+            _addEntry(beneficiaries[i], weights[i]);
         }
     }
 
     /// @notice Add a raffle entry. This function enforces that consecutive
     ///     entries cover adjacent ranges.
-    function addEntry(address beneficiary, uint256 weight) public onlyOwner {
+    function addEntry(address beneficiary, uint256 weight) external onlyOwner {
+        _addEntry(beneficiary, weight);
+    }
+
+    /// @notice Add a raffle entry. This function enforces that consecutive
+    ///     entries cover adjacent ranges.
+    function _addEntry(address beneficiary, uint256 weight) internal {
         require(beneficiary != address(0), "Beneficiary must exist");
         require(weight > 0, "Weight must be nonzero");
 

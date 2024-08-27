@@ -9,7 +9,7 @@ import {
 import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { decrypt } from '@kevincharm/gfc-fpe'
-import { HDNodeWallet, Wallet, solidityPackedKeccak256 } from 'ethers'
+import { HDNodeWallet, Wallet, ZeroAddress, solidityPackedKeccak256 } from 'ethers'
 import { randomBytes, randomInt } from 'node:crypto'
 
 interface Entry {
@@ -19,10 +19,11 @@ interface Entry {
 
 describe('WeightedRaffle', () => {
     let deployer: SignerWithAddress
+    let bob: SignerWithAddress
     let participants: HDNodeWallet[]
     let factory: WeightedRaffleFactory
     before(async () => {
-        ;[deployer] = await ethers.getSigners()
+        ;[deployer, bob] = await ethers.getSigners()
         participants = Array.from({ length: 100 }, () => Wallet.createRandom())
         const raffleMasterCopy = await new WeightedRaffle__factory(deployer).deploy()
         const factoryMasterCopy = await new WeightedRaffleFactory__factory(deployer).deploy()
@@ -52,16 +53,53 @@ describe('WeightedRaffle', () => {
     })
 
     for (let run = 0; run < 100; run++) {
-        it(`run #${run}`, async () => {
+        it(`[run #${run}] failure mode: prevents double init`, async () => {
+            await expect(raffle.init(deployer.address)).to.be.revertedWithCustomError(
+                raffle,
+                'InvalidInitialization',
+            )
+        })
+
+        it(`[run #${run}] failure mode: prevents non-owner from adding entries`, async () => {
+            await expect(
+                raffle.connect(bob).addEntry(participants[0].address, 1),
+            ).to.be.revertedWithCustomError(raffle, 'OwnableUnauthorizedAccount')
+            await expect(
+                raffle.connect(bob).addEntries([participants[0].address], [1]),
+            ).to.be.revertedWithCustomError(raffle, 'OwnableUnauthorizedAccount')
+        })
+
+        it(`[run #${run}] failure mode: addEntries input lengths mismatch`, async () => {
+            await expect(raffle.addEntries(participants.slice(0, 2), [])).to.be.revertedWith(
+                'Lengths mismatch',
+            )
+        })
+
+        it(`[run #${run}] failure mode: addEntry with zero address beneficiary`, async () => {
+            await expect(raffle.addEntry(ZeroAddress, 10)).to.be.revertedWith(
+                'Beneficiary must exist',
+            )
+        })
+
+        it(`[run #${run}] failure mode: addEntry with zero weight`, async () => {
+            await expect(raffle.addEntry(participants[0].address, 0)).to.be.revertedWith(
+                'Weight must be nonzero',
+            )
+        })
+
+        it(`[run #${run}] happy path`, async () => {
             const entries: Entry[] = Array.from({ length: 100 }, (_, i) => ({
                 address: participants[i].address,
                 weight: randomInt(10, 2 ** 32),
             }))
 
-            // Add entries on contract
+            // Add single entry
+            await raffle.addEntry(entries[0].address, entries[0].weight)
+
+            // Add rest of entries (batched)
             await raffle.addEntries(
-                entries.map((entry) => entry.address),
-                entries.map((entry) => entry.weight),
+                entries.slice(1).map((entry) => entry.address),
+                entries.slice(1).map((entry) => entry.weight),
             )
 
             // Check that entries are added correctly
@@ -76,7 +114,17 @@ describe('WeightedRaffle', () => {
             // Finalise
             const randomSeed = BigInt(`0x${randomBytes(32).toString('hex')}`)
             const numWinners = 10
+            // Failure mode: draw as non-owner
+            await expect(
+                raffle.connect(bob).draw(randomSeed, numWinners),
+            ).to.be.revertedWithCustomError(raffle, 'OwnableUnauthorizedAccount')
+            // Actual draw
             await raffle.draw(randomSeed, numWinners)
+
+            // Failure mode: can't draw twice
+            await expect(raffle.draw(randomSeed, numWinners)).to.be.revertedWith(
+                'Raffle already finalised',
+            )
 
             const totalWeight = entries.map((e) => e.weight).reduce((p, c) => p + c, 0)
             const expectedWinners = new Set<string>()
