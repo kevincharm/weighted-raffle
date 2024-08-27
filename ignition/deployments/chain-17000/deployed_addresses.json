@@ -1,5 +1,5 @@
 {
-  "WeightedRaffleImpl#WeightedRaffle": "0x5De597E499Aff1B6138B8B462a5Baa422ae9720C",
-  "WeightedRaffleFactory#WeightedRaffleFactory": "0x0632a6DF853E00E04b8f2F2F825bfC9a5eE9137A",
-  "WeightedRaffleFactory#ERC1967Proxy": "0x8D1501c9A2D7995a8c72CCdaB5D7100780107bc5"
+  "WeightedRaffleImpl#WeightedRaffle": "0x4FB278391a26B618248e0B4cD77c2C111f98b4d7",
+  "WeightedRaffleFactory#WeightedRaffleFactory": "0x993B9220067eAC7bB63790cfd5966032dc01949f",
+  "WeightedRaffleFactory#ERC1967Proxy": "0xE537f0394C84bbA5536400aD0f2Fc9Bb7A46791d"
 }
