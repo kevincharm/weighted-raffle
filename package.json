@@ -1,6 +1,7 @@
 {
   "name": "weighted-raffle",
   "version": "1.0.0",
+  "author": "Kevin Charm <kevin@frogworks.io>",
   "description": "Weighted raffle contract",
   "scripts": {
     "deploy:holesky": "yarn hardhat --config hardhat.config.holesky.ts --network holesky run scripts/deploy.ts",
