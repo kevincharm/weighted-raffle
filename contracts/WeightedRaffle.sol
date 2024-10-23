@@ -168,7 +168,10 @@ contract WeightedRaffle is
         // Compute VRF request price
         uint256 callbackGasLimit = getEstimatedCallbackGas(numWinners_);
         uint256 requestPrice = getRequestPrice(numWinners_);
-        require(address(this).balance >= requestPrice, "Insufficient payment");
+        require(
+            address(this).balance >= requestPrice,
+            "Insufficient balance for VRF request"
+        );
 
         // Make VRF request & record the expected requestId in the callback
         raffleState = RaffleState.RandomnessRequested;

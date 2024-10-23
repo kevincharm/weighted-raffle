@@ -1,6 +1,8 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import {
     ERC1967Proxy__factory,
+    MockRandomiser,
+    MockRandomiser__factory,
     WeightedRaffle,
     WeightedRaffle__factory,
     WeightedRaffleFactory,
@@ -16,15 +18,19 @@ describe('WeightedRaffleFactory', () => {
     let participants: HDNodeWallet[]
     let factory: WeightedRaffleFactory
     let owner: SignerWithAddress
+    let mockRandomiser: MockRandomiser
     before(async () => {
         ;[deployer, bob] = await ethers.getSigners()
         participants = Array.from({ length: 100 }, () => Wallet.createRandom())
+        mockRandomiser = await new MockRandomiser__factory(deployer).deploy()
+
         const raffleMasterCopy = await new WeightedRaffle__factory(deployer).deploy()
         const factoryMasterCopy = await new WeightedRaffleFactory__factory(deployer).deploy()
         const factoryProxy = await new ERC1967Proxy__factory(deployer).deploy(
             await factoryMasterCopy.getAddress(),
             await factoryMasterCopy.interface.encodeFunctionData('init', [
                 await raffleMasterCopy.getAddress(),
+                await mockRandomiser.getAddress(),
             ]),
         )
         factory = await WeightedRaffleFactory__factory.connect(

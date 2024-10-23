@@ -147,6 +147,32 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "raffleMasterCopy",
+        "type": "address"
+      }
+    ],
+    "name": "RaffleMasterCopySet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "randomiser",
+        "type": "address"
+      }
+    ],
+    "name": "RandomiserSet",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "implementation",
         "type": "address"
       }
@@ -185,6 +211,11 @@
       {
         "internalType": "address",
         "name": "raffleMasterCopy_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "randomiser_",
         "type": "address"
       }
     ],
@@ -234,6 +265,19 @@
   },
   {
     "inputs": [],
+    "name": "randomiser",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
@@ -248,6 +292,19 @@
       }
     ],
     "name": "setRaffleMasterCopy",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "randomiser_",
+        "type": "address"
+      }
+    ],
+    "name": "setRandomiser",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
