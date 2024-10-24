@@ -31,6 +31,7 @@ library SortitionSumTree {
 
     error SortitionSumTree__TreeAlreadyExists();
     error SortitionSumTree__KMustBeGreaterThanOne(uint256 k);
+    error SortitionSumTree__IndexOutOfBounds(uint256 index);
 
     /// @dev Initialise a SortitionSumTree
     /// @param _K The number of children each node in the tree should have.
@@ -162,8 +163,16 @@ library SortitionSumTree {
         }
     }
 
+    /// @notice Helper to get the total weight (sum of all values) in the tree,
+    ///     which is the value stored at the root node.
+    /// @param tree The SST
+    function getTotalWeight(SST storage tree) internal view returns (uint256) {
+        return tree.nodes[0];
+    }
+
     /// @dev Draw an ID from a tree using a number. Note that this function reverts if the sum of all values in the tree is 0.
-    /// @param _drawnNumber The drawn number.
+    /// @param _drawnNumber The drawn number. Ensure this is a uniform random
+    ///     number in the range of [0, totalWeight).
     /// @return ID The drawn ID.
     /// `O(k * log_k(n))` where
     /// `k` is the maximum number of childs per node in the tree,
@@ -173,7 +182,14 @@ library SortitionSumTree {
         uint256 _drawnNumber
     ) internal view returns (bytes32 ID) {
         uint256 treeIndex = 0;
-        uint256 currentDrawnNumber = _drawnNumber % tree.nodes[0];
+        uint256 currentDrawnNumber = _drawnNumber;
+        if (currentDrawnNumber >= getTotalWeight(tree)) {
+            // The root node contains the sum of all weights (values) in the
+            // tree. Explicitly reject drawn numbers that are outside of this
+            // range; and expect the caller to handle picking a uniform random
+            // number in the range of [0, totalWeight).
+            revert SortitionSumTree__IndexOutOfBounds(currentDrawnNumber);
+        }
 
         while (
             (tree.K * treeIndex) + 1 < tree.nodes.length // While it still has children.
