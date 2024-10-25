@@ -3,13 +3,12 @@ import {
     ERC1967Proxy__factory,
     MockRandomiser,
     MockRandomiser__factory,
-    WeightedRaffle,
-    WeightedRaffle__factory,
     WeightedRaffleFactory,
     WeightedRaffleFactory__factory,
+    WeightedRaffleHarness,
+    WeightedRaffleHarness__factory,
 } from '../typechain-types'
 import { ethers } from 'hardhat'
-import { setBalance } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
 import { decrypt } from '@kevincharm/gfc-fpe'
 import { HDNodeWallet, Wallet, ZeroAddress, parseEther, solidityPackedKeccak256 } from 'ethers'
@@ -38,7 +37,7 @@ describe('WeightedRaffle', () => {
         participants = Array.from({ length: 100 }, () => Wallet.createRandom())
         mockRandomiser = await new MockRandomiser__factory(deployer).deploy()
 
-        const raffleMasterCopy = await new WeightedRaffle__factory(deployer).deploy()
+        const raffleMasterCopy = await new WeightedRaffleHarness__factory(deployer).deploy()
         const factoryMasterCopy = await new WeightedRaffleFactory__factory(deployer).deploy()
         const factoryProxy = await new ERC1967Proxy__factory(deployer).deploy(
             await factoryMasterCopy.getAddress(),
@@ -53,7 +52,7 @@ describe('WeightedRaffle', () => {
         ).waitForDeployment()
     })
 
-    let raffle: WeightedRaffle
+    let raffle: WeightedRaffleHarness
     let minFulfillGasPerWinner = 2n ** 256n - 1n
     let maxFulfillGasPerWinner = 0n
     beforeEach(async () => {
@@ -62,7 +61,7 @@ describe('WeightedRaffle', () => {
         const raffleDeployedEvent = deployTx!.logs
             .map((log) => factory.interface.parseLog(log)!)
             .find((log) => log.name === 'RaffleDeployed')!
-        raffle = await WeightedRaffle__factory.connect(
+        raffle = await WeightedRaffleHarness__factory.connect(
             raffleDeployedEvent.args[0],
             deployer,
         ).waitForDeployment()
@@ -89,6 +88,23 @@ describe('WeightedRaffle', () => {
             ).to.be.revertedWithCustomError(raffle, 'OwnableUnauthorizedAccount')
         })
 
+        it(`[run #${run}] failure mode: prevents adding entries if not in Ready state`, async () => {
+            const failureStates: RaffleState[] = [
+                RaffleState.Uninitialised,
+                RaffleState.RandomnessRequested,
+                RaffleState.Finalised,
+            ]
+            for (const state of failureStates) {
+                await raffle.setState(state)
+                await expect(raffle.addEntry(participants[0].address, 1)).to.be.revertedWith(
+                    'Invalid state',
+                )
+                await expect(raffle.addEntries([participants[0].address], [1])).to.be.revertedWith(
+                    'Invalid state',
+                )
+            }
+        })
+
         it(`[run #${run}] failure mode: addEntries input lengths mismatch`, async () => {
             await expect(raffle.addEntries(participants.slice(0, 2), [])).to.be.revertedWith(
                 'Lengths mismatch',
@@ -105,6 +121,49 @@ describe('WeightedRaffle', () => {
             await expect(raffle.addEntry(participants[0].address, 0)).to.be.revertedWith(
                 'Weight must be nonzero',
             )
+        })
+
+        it(`[run #${run}] getEntries pagination`, async () => {
+            const entries: Entry[] = Array.from({ length: 100 }, (_, i) => ({
+                address: participants[i].address,
+                weight: randomInt(10, 2 ** 32),
+            }))
+            await raffle.addEntries(
+                entries.map((e) => e.address),
+                entries.map((e) => e.weight),
+            )
+
+            expect(await raffle.getEntriesCount()).to.eq(entries.length)
+
+            await expect(raffle.getEntries(0, 0)).to.be.revertedWith('Count must be nonzero')
+
+            expect(
+                (await raffle.getEntries(0, 100)).map((e) => ({
+                    address: e.beneficiary,
+                    weight: Number(e.end - e.start),
+                })),
+            ).to.deep.eq(entries)
+            // 10 to 60
+            expect(
+                (await raffle.getEntries(10, 50)).map((e) => ({
+                    address: e.beneficiary,
+                    weight: Number(e.end - e.start),
+                })),
+            ).to.deep.eq(entries.slice(10, 60))
+            // 10 to 100
+            expect(
+                (await raffle.getEntries(10, 90)).map((e) => ({
+                    address: e.beneficiary,
+                    weight: Number(e.end - e.start),
+                })),
+            ).to.deep.eq(entries.slice(10))
+            // 10 to 110 (truncates)
+            expect(
+                (await raffle.getEntries(10, 100)).map((e) => ({
+                    address: e.beneficiary,
+                    weight: Number(e.end - e.start),
+                })),
+            ).to.deep.eq(entries.slice(10))
         })
 
         it(`[run #${run}] happy path`, async () => {
@@ -148,7 +207,10 @@ describe('WeightedRaffle', () => {
                 'Insufficient balance for VRF request',
             )
             // Success mode: sufficient balance
-            await setBalance(await raffle.getAddress(), parseEther('0.01'))
+            await deployer.sendTransaction({
+                to: await raffle.getAddress(),
+                value: parseEther('0.01'),
+            })
             await raffle.draw(numWinners)
             const requestId = await raffle.requestId()
             expect(requestId).to.not.eq(0)
@@ -158,6 +220,19 @@ describe('WeightedRaffle', () => {
             await expect(raffle.draw(numWinners)).to.be.revertedWith('Invalid state')
 
             // Fulfill VRF request (mocked)
+            // Failure mode: wrong randomiser
+            await expect(
+                raffle.connect(bob).receiveRandomness(requestId, randomSeed),
+            ).to.be.revertedWith('Unexpected VRF fulfiller')
+            // Failure mode: wrong request ID
+            await expect(
+                mockRandomiser.fulfillRandomnessUnchecked(
+                    await raffle.getAddress(),
+                    requestId + 1n,
+                    randomSeed,
+                ),
+            ).to.be.revertedWith('Unexpected requestId')
+            // Success mode: correct randomiser
             const fulfillTx = await mockRandomiser
                 .fulfillRandomness(requestId, randomSeed)
                 .then((tx) => tx.wait())

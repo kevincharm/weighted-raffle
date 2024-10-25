@@ -58,6 +58,21 @@ contract MockRandomiser is IAnyrand {
         );
     }
 
+    /// @notice Callback function used by VRF Coordinator (V2)
+    /// @param requestId Request ID
+    /// @param randomWord Random word
+    function fulfillRandomnessUnchecked(
+        address callbackContract,
+        uint256 requestId,
+        uint256 randomWord
+    ) external {
+        // ~7238 gas used before this line
+        IRandomiserCallbackV3(callbackContract).receiveRandomness(
+            requestId,
+            randomWord
+        );
+    }
+
     function getRequestState(
         uint256 requestId
     ) external view returns (RequestState) {

@@ -249,4 +249,25 @@ contract WeightedRaffle is
     ) public view onlyInState(RaffleState.Finalised) returns (address) {
         return winners.at(n);
     }
+
+    /// @notice Get total count of entries
+    function getEntriesCount() public view returns (uint256) {
+        return entries.length;
+    }
+
+    /// @notice Get entries
+    /// @param cursor Start index
+    /// @param count Number of entries to fetch
+    function getEntries(
+        uint256 cursor,
+        uint256 count
+    ) public view returns (Entry[] memory out) {
+        uint256 len = entries.length;
+        count = count > len - cursor ? len - cursor : count;
+        require(count > 0, "Count must be nonzero");
+        out = new Entry[](count);
+        for (uint256 i; i < count; ++i) {
+            out[i] = entries[cursor + i];
+        }
+    }
 }
