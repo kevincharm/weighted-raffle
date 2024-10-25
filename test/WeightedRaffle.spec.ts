@@ -54,6 +54,8 @@ describe('WeightedRaffle', () => {
     })
 
     let raffle: WeightedRaffle
+    let minFulfillGasPerWinner = 2n ** 256n - 1n
+    let maxFulfillGasPerWinner = 0n
     beforeEach(async () => {
         const deployTx = await factory.deployRaffle().then((tx) => tx.wait())
         expect(deployTx).to.emit(factory, 'RaffleDeployed')
@@ -64,6 +66,11 @@ describe('WeightedRaffle', () => {
             raffleDeployedEvent.args[0],
             deployer,
         ).waitForDeployment()
+    })
+
+    after(async () => {
+        console.log(`Min fulfill tx gas per winner: ${minFulfillGasPerWinner}`)
+        console.log(`Max fulfill tx gas per winner: ${maxFulfillGasPerWinner}`)
     })
 
     for (let run = 0; run < 100; run++) {
@@ -128,7 +135,7 @@ describe('WeightedRaffle', () => {
 
             // Finalise
             const randomSeed = BigInt(`0x${randomBytes(32).toString('hex')}`)
-            const numWinners = 10
+            const numWinners = 6
             // Failure mode: draw as non-owner
             await expect(raffle.connect(bob).draw(numWinners)).to.be.revertedWithCustomError(
                 raffle,
@@ -151,10 +158,22 @@ describe('WeightedRaffle', () => {
             await expect(raffle.draw(numWinners)).to.be.revertedWith('Invalid state')
 
             // Fulfill VRF request (mocked)
-            const fulfillTx = await mockRandomiser.fulfillRandomness(requestId, randomSeed)
+            const fulfillTx = await mockRandomiser
+                .fulfillRandomness(requestId, randomSeed)
+                .then((tx) => tx.wait())
             expect(fulfillTx).to.emit(raffle, 'RaffleFinalised').withArgs(numWinners)
             expect(await raffle.raffleState()).to.eq(RaffleState.Finalised)
+            // Record some gas stats
+            const fulfillGasPerWinner =
+                BigInt(fulfillTx!.gasUsed - 21000n - 7238n) / BigInt(numWinners)
+            if (fulfillGasPerWinner > maxFulfillGasPerWinner) {
+                maxFulfillGasPerWinner = fulfillGasPerWinner
+            }
+            if (fulfillGasPerWinner < minFulfillGasPerWinner) {
+                minFulfillGasPerWinner = fulfillGasPerWinner
+            }
 
+            // Verify the picking process
             const totalWeight = entries.map((e) => e.weight).reduce((p, c) => p + c, 0)
             const expectedWinners = new Set<string>()
             let i = 0
@@ -178,6 +197,7 @@ describe('WeightedRaffle', () => {
             }
             expect(expectedWinners.size).to.eq(numWinners)
 
+            // No duplicates
             for (let n = 0; n < numWinners; n++) {
                 const winner = await raffle.getWinner(n)
                 expectedWinners.delete(winner)

@@ -51,6 +51,7 @@ contract MockRandomiser is IAnyrand {
         require(requestId < nextRequestId, "Request ID doesn't exist");
         address callbackContract = requestIdToCallbackMap[requestId];
         delete requestIdToCallbackMap[requestId];
+        // ~7238 gas used before this line
         IRandomiserCallbackV3(callbackContract).receiveRandomness(
             requestId,
             randomWord

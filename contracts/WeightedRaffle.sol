@@ -95,7 +95,7 @@ contract WeightedRaffle is
     /// @param weights List of weights
     function addEntries(
         address[] calldata beneficiaries,
-        uint256[] calldata weights
+        uint64[] calldata weights
     ) public onlyInState(RaffleState.Ready) onlyOwner {
         require(beneficiaries.length == weights.length, "Lengths mismatch");
         for (uint256 i; i < beneficiaries.length; ++i) {
@@ -109,7 +109,7 @@ contract WeightedRaffle is
     /// @param weight Weight
     function addEntry(
         address beneficiary,
-        uint256 weight
+        uint64 weight
     ) public onlyInState(RaffleState.Ready) onlyOwner {
         _addEntry(beneficiary, weight);
     }
@@ -118,7 +118,7 @@ contract WeightedRaffle is
     ///     entries cover adjacent ranges.
     /// @param beneficiary Beneficiary
     /// @param weight Weight
-    function _addEntry(address beneficiary, uint256 weight) internal {
+    function _addEntry(address beneficiary, uint64 weight) internal {
         require(beneficiary != address(0), "Beneficiary must exist");
         require(weight > 0, "Weight must be nonzero");
 
@@ -140,7 +140,8 @@ contract WeightedRaffle is
     function getEstimatedCallbackGas(
         uint256 numWinners_
     ) public pure returns (uint256) {
-        return 100_000 * numWinners_;
+        // real max: ~143661 gas
+        return 290_000 * numWinners_;
     }
 
     /// @notice Estimate VRF request price
@@ -149,11 +150,11 @@ contract WeightedRaffle is
     /// @param numWinners_ Number of winners to draw
     function getRequestPrice(
         uint256 numWinners_
-    ) public view returns (uint256) {
-        (uint256 requestPrice, ) = IAnyrand(randomiser).getRequestPrice(
-            getEstimatedCallbackGas(numWinners_)
+    ) public view returns (uint256 requestPrice, uint256 estimatedCallbackGas) {
+        estimatedCallbackGas = getEstimatedCallbackGas(numWinners_);
+        (requestPrice, ) = IAnyrand(randomiser).getRequestPrice(
+            estimatedCallbackGas
         );
-        return requestPrice;
     }
 
     /// @notice Initiate the raffle draw, requesting random words from VRF.
@@ -166,8 +167,9 @@ contract WeightedRaffle is
         numWinners = numWinners_;
 
         // Compute VRF request price
-        uint256 callbackGasLimit = getEstimatedCallbackGas(numWinners_);
-        uint256 requestPrice = getRequestPrice(numWinners_);
+        (uint256 requestPrice, uint256 callbackGasLimit) = getRequestPrice(
+            numWinners_
+        );
         require(
             address(this).balance >= requestPrice,
             "Insufficient balance for VRF request"
@@ -191,8 +193,9 @@ contract WeightedRaffle is
         require(msg.sender == randomiser, "Unexpected VRF fulfiller");
         require(requestId_ == requestId, "Unexpected requestId");
 
+        uint256 numWinners_ = numWinners;
         uint256 i;
-        for (uint256 n; n < numWinners; ++n) {
+        for (uint256 n; n < numWinners_; ++n) {
             address winner;
             do {
                 winner = computeWinner(randomWord, i++);
@@ -212,17 +215,18 @@ contract WeightedRaffle is
         uint256 randomSeed,
         uint256 n
     ) internal view returns (address winner) {
-        Entry memory lastEntry = entries[entries.length - 1];
+        uint256 l = 0;
+        uint256 r = entries.length - 1;
+
+        Entry memory lastEntry = entries[r];
         uint256 index = FeistelShuffleOptimised.deshuffle(
             n,
             lastEntry.end,
             randomSeed,
             12
         );
-        // binsearch to find the range that index is covered by
-        uint256 l = 0;
-        uint256 r = entries.length - 1;
 
+        // binsearch to find the range that index is covered by
         while (l <= r) {
             uint256 m = (l + r) / 2;
             Entry memory entry = entries[m];
@@ -243,7 +247,6 @@ contract WeightedRaffle is
     function getWinner(
         uint256 n
     ) public view onlyInState(RaffleState.Finalised) returns (address) {
-        // Missing: n range check
         return winners.at(n);
     }
 }
