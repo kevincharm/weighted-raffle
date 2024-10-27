@@ -4,7 +4,7 @@
   "author": "Kevin Charm <kevin@frogworks.io>",
   "description": "Weighted raffle contract",
   "scripts": {
-    "deploy:holesky": "yarn hardhat --config hardhat.config.holesky.ts --network holesky run scripts/deploy.ts",
+    "deploy:base": "yarn hardhat --config hardhat.config.base.ts --network base run scripts/deployBase.ts",
     "build": "yarn hardhat compile",
     "test": "yarn hardhat --network hardhat test",
     "coverage": "yarn hardhat coverage",
