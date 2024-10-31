@@ -10,6 +10,7 @@ import {IAnyrand} from "./interfaces/IAnyrand.sol";
 
 /// @title WeightedRaffle
 /// @author Kevin Charm <kevin@frogworks.io>
+/// @custom:version 1.1.0
 /// @notice Weighted raffle implementation for Octant Sweepstakes
 contract WeightedRaffle is
     Initializable,
