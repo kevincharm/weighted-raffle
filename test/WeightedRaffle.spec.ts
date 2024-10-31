@@ -284,6 +284,16 @@ describe('WeightedRaffle', () => {
             expect(await ethers.provider.getBalance(await raffle.getAddress())).to.eq(0)
         })
     }
+
+    it('should allow owner to set gas limit for picking each winner', async () => {
+        // Failure: not owner
+        await expect(
+            raffle.connect(bob).setGasLimitPerWinnerPick(1_000_000),
+        ).to.be.revertedWithCustomError(raffle, 'OwnableUnauthorizedAccount')
+        // Success
+        await raffle.setGasLimitPerWinnerPick(1_000_000)
+        expect(await raffle.gasLimitPerWinnerPick()).to.eq(1_000_000)
+    })
 })
 
 function f(R: bigint, i: bigint, seed: bigint, domain: bigint): bigint {

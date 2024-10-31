@@ -50,6 +50,8 @@ contract WeightedRaffle is
     uint256 public requestId;
     /// @notice Drawn winners
     EnumerableSet.AddressSet internal winners;
+    /// @notice Gas limit for picking each winner
+    uint256 public gasLimitPerWinnerPick;
 
     event RaffleEntryAdded(
         address indexed beneficiary,
@@ -59,6 +61,7 @@ contract WeightedRaffle is
     );
     event RaffleDrawInitiated(uint256 requestId);
     event RaffleFinalised(uint256 randomSeed);
+    event GasLimitPerWinnerPickSet(uint256 gasLimitPerWinnerPick);
 
     /// NB: Use this contract behind a proxy
     constructor() {
@@ -68,12 +71,6 @@ contract WeightedRaffle is
     /// @notice Receive ETH; used to cover VRF request/callback gas cost
     receive() external payable {}
 
-    /// @notice Withdraw ETH from the contract
-    function withdrawETH() public onlyOwner {
-        (bool success, ) = msg.sender.call{value: address(this).balance}("");
-        require(success, "Withdrawal failed");
-    }
-
     /// @notice Proxy initialiser
     /// @param owner_ Owner of the contract
     /// @param randomiser_ Randomiser contract
@@ -81,6 +78,8 @@ contract WeightedRaffle is
         __Ownable_init(owner_);
         randomiser = randomiser_;
         raffleState = RaffleState.Ready;
+        // Default gas limit for picking each winner
+        gasLimitPerWinnerPick = 500_000;
     }
 
     /// @notice Guard - only allow execution in a certain state
@@ -139,9 +138,9 @@ contract WeightedRaffle is
     /// @param numWinners_ Number of winners to draw
     function getEstimatedCallbackGas(
         uint256 numWinners_
-    ) public pure returns (uint256) {
+    ) public view returns (uint256) {
         // real max: ~143661 gas
-        return 290_000 * numWinners_;
+        return gasLimitPerWinnerPick * numWinners_;
     }
 
     /// @notice Estimate VRF request price
@@ -269,5 +268,20 @@ contract WeightedRaffle is
         for (uint256 i; i < count; ++i) {
             out[i] = entries[cursor + i];
         }
+    }
+
+    /// @notice Withdraw ETH from the contract
+    function withdrawETH() public onlyOwner {
+        (bool success, ) = msg.sender.call{value: address(this).balance}("");
+        require(success, "Withdrawal failed");
+    }
+
+    /// @notice Set gas limit for picking each winner
+    /// @param gasLimitPerWinnerPick_ Gas limit
+    function setGasLimitPerWinnerPick(
+        uint256 gasLimitPerWinnerPick_
+    ) public onlyOwner {
+        gasLimitPerWinnerPick = gasLimitPerWinnerPick_;
+        emit GasLimitPerWinnerPickSet(gasLimitPerWinnerPick_);
     }
 }
