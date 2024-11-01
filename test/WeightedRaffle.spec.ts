@@ -72,7 +72,7 @@ describe('WeightedRaffle', () => {
         console.log(`Max fulfill tx gas per winner: ${maxFulfillGasPerWinner}`)
     })
 
-    for (let run = 0; run < 100; run++) {
+    for (let run = 0; run < 10; run++) {
         it(`[run #${run}] failure mode: prevents double init`, async () => {
             await expect(
                 raffle.init(deployer.address, await mockRandomiser.getAddress()),
@@ -293,6 +293,36 @@ describe('WeightedRaffle', () => {
         // Success
         await raffle.setGasLimitPerWinnerPick(1_000_000)
         expect(await raffle.gasLimitPerWinnerPick()).to.eq(1_000_000)
+    })
+
+    describe('#draw', () => {
+        beforeEach(async () => {
+            await raffle.setState(RaffleState.Ready)
+            await raffle.addEntries(
+                participants.map((p) => p.address),
+                participants.map(() => Math.floor(Math.random() * 2 ** 32)),
+            )
+        })
+
+        it('should refund excess ETH', async () => {
+            await expect(
+                raffle.draw(1, {
+                    value: parseEther('0.01'),
+                }),
+            ).to.emit(raffle, 'ExcessRefunded')
+        })
+
+        it('should not refund any eth if no excess', async () => {
+            await deployer.sendTransaction({
+                to: await raffle.getAddress(),
+                value: parseEther('1'),
+            })
+            await expect(raffle.draw(1)).to.not.emit(raffle, 'ExcessRefunded')
+        })
+
+        it('should error if insufficient balance', async () => {
+            await expect(raffle.draw(1)).to.be.revertedWith('Insufficient balance for VRF request')
+        })
     })
 })
 

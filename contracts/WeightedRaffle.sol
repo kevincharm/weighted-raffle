@@ -10,7 +10,7 @@ import {IAnyrand} from "./interfaces/IAnyrand.sol";
 
 /// @title WeightedRaffle
 /// @author Kevin Charm <kevin@frogworks.io>
-/// @custom:version 1.1.0
+/// @custom:version 1.2.0
 /// @notice Weighted raffle implementation for Octant Sweepstakes
 contract WeightedRaffle is
     Initializable,
@@ -63,6 +63,7 @@ contract WeightedRaffle is
     event RaffleDrawInitiated(uint256 requestId);
     event RaffleFinalised(uint256 randomSeed);
     event GasLimitPerWinnerPickSet(uint256 gasLimitPerWinnerPick);
+    event ExcessRefunded(address indexed caller, uint256 amount);
 
     /// NB: Use this contract behind a proxy
     constructor() {
@@ -161,7 +162,7 @@ contract WeightedRaffle is
     /// @param numWinners_ Number of winners to draw
     function draw(
         uint256 numWinners_
-    ) public onlyInState(RaffleState.Ready) onlyOwner {
+    ) public payable onlyInState(RaffleState.Ready) onlyOwner {
         // Record number of winners we want to draw; we'll need it in the VRF
         // callback
         numWinners = numWinners_;
@@ -170,6 +171,13 @@ contract WeightedRaffle is
         (uint256 requestPrice, uint256 callbackGasLimit) = getRequestPrice(
             numWinners_
         );
+        if (msg.value > requestPrice) {
+            // Refund excess to caller, if any
+            uint256 excess = msg.value - requestPrice;
+            (bool success, ) = msg.sender.call{value: excess}("");
+            require(success, "Failed to refund excess");
+            emit ExcessRefunded(msg.sender, excess);
+        }
         require(
             address(this).balance >= requestPrice,
             "Insufficient balance for VRF request"
