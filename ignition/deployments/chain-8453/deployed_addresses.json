@@ -2,5 +2,6 @@
   "WeightedRaffleImpl#WeightedRaffle": "0xC7C1152e8f088AAd022Edf005E4076F544Cf63a5",
   "WeightedRaffleFactory#WeightedRaffleFactory": "0x8945c50fD8F7eF148e46b42E17654669e12281A8",
   "WeightedRaffleFactory#ERC1967Proxy": "0x2b798de83ED7881687ABFc6AAD5C53C17E821B1D",
-  "WeightedRaffleImplV1_1_0#WeightedRaffle": "0x6A0537142D0C95364705C0c587C37bd9CF0B8c67"
+  "WeightedRaffleImplV1_1_0#WeightedRaffle": "0x6A0537142D0C95364705C0c587C37bd9CF0B8c67",
+  "WeightedRaffleImplV1_2_0#WeightedRaffle": "0x4255aF827a898f2619AFB48e2c515c2F8369312E"
 }
